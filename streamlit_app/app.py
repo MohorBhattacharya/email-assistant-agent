@@ -1,6 +1,8 @@
 """
-Email Assistant Agent — Streamlit App
-Perceive → Decide → Act agent loop using Groq API (llama-3.3-70b-versatile)
+Email Assistant Agent — War Room Edition
+Three AI agents debate how to respond to every email.
+Agent Rex (aggressive) vs Agent Sage (diplomatic) vs Agent Nova (analytical)
+Powered by Groq API (llama-3.3-70b-versatile)
 """
 
 import streamlit as st
@@ -9,8 +11,8 @@ import json
 from datetime import datetime
 
 st.set_page_config(
-    page_title="Mail Agent",
-    page_icon="✉",
+    page_title="Mail Agent — War Room",
+    page_icon="⚔",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -19,247 +21,146 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=DM+Serif+Display&display=swap');
 
-html, body, [class*="css"] {
-    font-family: 'Inter', sans-serif;
-}
-
-/* Hide default streamlit chrome */
+html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 #MainMenu, footer, header { visibility: hidden; }
 .block-container { padding: 0 !important; max-width: 100% !important; }
-section[data-testid="stSidebar"] { background: #0f0f0f; border-right: 1px solid #1e1e1e; }
+
+section[data-testid="stSidebar"] { background: #0a0a0a; border-right: 1px solid #1a1a1a; }
 section[data-testid="stSidebar"] > div { padding: 0; }
 
-/* Sidebar content */
-.sb-header {
-    padding: 28px 20px 20px;
-    border-bottom: 1px solid #1e1e1e;
-}
-.sb-logo {
-    font-family: 'DM Serif Display', serif;
-    font-size: 22px;
-    color: #ffffff;
-    letter-spacing: -0.5px;
-}
-.sb-tagline {
-    font-size: 11px;
-    color: #555;
-    margin-top: 3px;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-}
-.sb-section { padding: 16px 20px; border-bottom: 1px solid #1a1a1a; }
-.sb-section-title {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 1.2px;
-    text-transform: uppercase;
-    color: #444;
-    margin-bottom: 10px;
-}
+.sb-header { padding: 24px 20px 16px; border-bottom: 1px solid #1a1a1a; }
+.sb-logo { font-family: 'DM Serif Display', serif; font-size: 20px; color: #fff; letter-spacing: -0.5px; }
+.sb-tagline { font-size: 10px; color: #444; margin-top: 3px; letter-spacing: 1px; text-transform: uppercase; }
 
-/* Stat pills */
-.stats-row { display: flex; gap: 8px; }
-.stat-pill {
-    flex: 1;
-    text-align: center;
-    padding: 8px 4px;
-    border-radius: 8px;
-    font-size: 11px;
-    font-weight: 600;
-}
-.stat-urgent { background: #1a0a0a; color: #f87171; border: 1px solid #2d1111; }
-.stat-action { background: #1a130a; color: #fbbf24; border: 1px solid #2d1f0a; }
-.stat-info   { background: #0a0f1a; color: #60a5fa; border: 1px solid #0a1a2d; }
+.sb-section { padding: 14px 20px; border-bottom: 1px solid #141414; }
+.sb-section-title { font-size: 9px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: #383838; margin-bottom: 10px; }
 
-/* Email items in sidebar */
-.email-item {
-    padding: 12px 20px;
-    cursor: pointer;
-    border-bottom: 1px solid #141414;
-    transition: background 0.15s;
-}
-.email-item:hover { background: #161616; }
-.email-item.active { background: #1a1a1a; border-left: 2px solid #6366f1; }
-.ei-row1 { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
-.ei-name { font-size: 13px; font-weight: 500; color: #e0e0e0; }
-.ei-name.unread { color: #ffffff; font-weight: 600; }
-.ei-time { font-size: 10px; color: #444; }
-.ei-subject { font-size: 11px; color: #555; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 190px; }
-.ei-subject.unread { color: #888; }
+.stats-row { display: flex; gap: 6px; }
+.stat-pill { flex: 1; text-align: center; padding: 8px 4px; border-radius: 8px; font-size: 10px; font-weight: 600; line-height: 1.6; }
+.stat-urgent { background: #1a0808; color: #f87171; border: 1px solid #2d1010; }
+.stat-action { background: #1a1208; color: #fbbf24; border: 1px solid #2d1e08; }
+.stat-info   { background: #080d1a; color: #60a5fa; border: 1px solid #08122d; }
 
-/* Category badges */
-.badge {
-    display: inline-flex; align-items: center; gap: 4px;
-    padding: 2px 8px; border-radius: 20px;
-    font-size: 10px; font-weight: 600; letter-spacing: 0.3px;
-}
-.badge-urgent  { background: #1a0a0a; color: #f87171; border: 1px solid #2d1111; }
-.badge-action  { background: #1a130a; color: #fbbf24; border: 1px solid #2d1f0a; }
-.badge-info    { background: #0a0f1a; color: #60a5fa; border: 1px solid #0a1a2d; }
-.badge-low     { background: #111; color: #666; border: 1px solid #1e1e1e; }
-.badge-spam    { background: #111; color: #555; border: 1px solid #1e1e1e; }
-.badge-new     { background: #13131a; color: #818cf8; border: 1px solid #1e1e2d; }
+.email-item { padding: 12px 20px; border-bottom: 1px solid #111; transition: background 0.12s; }
+.email-item:hover { background: #111; }
+.email-item.active { background: #131313; border-left: 2px solid #818cf8; }
+.ei-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
+.ei-name { font-size: 12px; font-weight: 600; color: #ddd; }
+.ei-name.unread { color: #fff; }
+.ei-time { font-size: 10px; color: #383838; }
+.ei-subject { font-size: 11px; color: #484848; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 185px; margin-bottom: 5px; }
+.ei-subject.unread { color: #777; }
 
-/* Main panel */
-.main-wrap { padding: 0; height: 100vh; display: flex; flex-direction: column; background: #0a0a0a; }
+.badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px; border-radius: 20px; font-size: 9px; font-weight: 700; letter-spacing: 0.4px; }
+.badge-urgent { background: #1a0808; color: #f87171; border: 1px solid #2d1010; }
+.badge-action { background: #1a1208; color: #fbbf24; border: 1px solid #2d1e08; }
+.badge-info   { background: #080d1a; color: #60a5fa; border: 1px solid #08122d; }
+.badge-low    { background: #111; color: #555; border: 1px solid #1e1e1e; }
+.badge-spam   { background: #111; color: #444; border: 1px solid #1e1e1e; }
+.badge-new    { background: #10101a; color: #818cf8; border: 1px solid #1a1a2d; }
 
-/* Email header */
-.email-header {
-    padding: 28px 40px 20px;
-    border-bottom: 1px solid #1a1a1a;
-    background: #0d0d0d;
-}
-.email-subject-title {
-    font-family: 'DM Serif Display', serif;
-    font-size: 26px;
-    color: #f0f0f0;
-    letter-spacing: -0.5px;
-    margin-bottom: 6px;
-    line-height: 1.2;
-}
-.email-meta-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.email-from { font-size: 13px; color: #666; }
-.email-from span { color: #999; }
+.memory-item { padding: 5px 0; border-bottom: 1px solid #111; font-size: 10px; color: #444; font-family: monospace; }
+.memory-item span { color: #818cf8; }
 
-/* Email body */
-.email-body-wrap {
-    padding: 28px 40px;
-    background: #0a0a0a;
-    border-bottom: 1px solid #1a1a1a;
-}
-.email-body-text {
-    font-size: 14px;
-    line-height: 1.8;
-    color: #aaa;
-    white-space: pre-wrap;
-    max-width: 680px;
-}
+/* Main area */
+.main-bg { background: #080808; min-height: 100vh; }
 
-/* Analysis section */
-.analysis-wrap { padding: 24px 40px; background: #0a0a0a; }
-.section-label {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    color: #333;
-    margin-bottom: 16px;
-}
-.metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
-.metric-card {
-    background: #0f0f0f;
-    border: 1px solid #1a1a1a;
-    border-radius: 10px;
-    padding: 14px 16px;
-}
-.metric-label { font-size: 10px; color: #444; letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 6px; }
-.metric-value { font-size: 15px; font-weight: 600; color: #e0e0e0; }
-.metric-value.urgent  { color: #f87171; }
-.metric-value.high    { color: #fbbf24; }
-.metric-value.medium  { color: #60a5fa; }
-.metric-value.low     { color: #666; }
+.email-header { padding: 28px 36px 18px; border-bottom: 1px solid #141414; background: #0a0a0a; }
+.email-title { font-family: 'DM Serif Display', serif; font-size: 24px; color: #f0f0f0; letter-spacing: -0.3px; margin-bottom: 6px; line-height: 1.2; }
+.email-meta { display: flex; align-items: center; gap: 10px; font-size: 12px; color: #555; flex-wrap: wrap; }
+.email-meta span { color: #888; }
 
-.summary-card {
-    background: #0f0f0f;
-    border: 1px solid #1a1a1a;
-    border-radius: 10px;
-    padding: 16px 18px;
-    margin-bottom: 16px;
-}
-.summary-text { font-size: 13px; color: #888; line-height: 1.7; }
+.email-body-section { padding: 20px 36px; border-bottom: 1px solid #141414; background: #080808; }
+.section-eyebrow { font-size: 9px; font-weight: 700; letter-spacing: 1.8px; text-transform: uppercase; color: #2e2e2e; margin-bottom: 10px; }
+.email-body-text { font-size: 13px; line-height: 1.8; color: #888; white-space: pre-wrap; max-width: 640px; }
 
-.actions-list { margin-bottom: 20px; }
-.action-item {
-    display: flex; align-items: flex-start; gap: 10px;
-    padding: 8px 0;
-    border-bottom: 1px solid #141414;
-    font-size: 13px; color: #777;
-}
-.action-arrow { color: #6366f1; font-size: 12px; margin-top: 1px; flex-shrink: 0; }
+/* War room */
+.warroom-section { padding: 24px 36px; background: #080808; }
+.warroom-title { font-family: 'DM Serif Display', serif; font-size: 18px; color: #ccc; margin-bottom: 6px; }
+.warroom-sub { font-size: 11px; color: #333; margin-bottom: 20px; }
 
-/* Reply section */
-.reply-wrap { padding: 0 40px 32px; background: #0a0a0a; }
-.reply-card {
-    background: #0f0f0f;
-    border: 1px solid #1e1e1e;
-    border-radius: 12px;
-    padding: 18px 20px;
-}
+.agents-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
 
-/* Streamlit overrides */
+.agent-card { border-radius: 12px; padding: 16px; border: 1px solid; position: relative; overflow: hidden; }
+.agent-rex  { background: #120808; border-color: #2d1010; }
+.agent-sage { background: #080d12; border-color: #08122d; }
+.agent-nova { background: #0d1208; border-color: #122d08; }
+
+.agent-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.agent-avatar { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.avatar-rex  { background: #2d1010; }
+.avatar-sage { background: #08122d; }
+.avatar-nova { background: #122d08; }
+
+.agent-name { font-size: 13px; font-weight: 700; }
+.agent-name.rex  { color: #f87171; }
+.agent-name.sage { color: #60a5fa; }
+.agent-name.nova { color: #86efac; }
+
+.agent-role { font-size: 9px; letter-spacing: 0.8px; text-transform: uppercase; color: #444; margin-top: 1px; }
+
+.agent-stance { font-size: 11px; line-height: 1.65; color: #666; min-height: 60px; }
+.agent-stance.loading { color: #333; font-style: italic; }
+
+.agent-vote { margin-top: 10px; padding-top: 10px; border-top: 1px solid #1e1e1e; font-size: 10px; }
+.vote-label { color: #333; letter-spacing: 0.5px; text-transform: uppercase; font-size: 9px; margin-bottom: 3px; }
+.vote-text { font-size: 11px; font-weight: 600; }
+.vote-rex  { color: #f87171; }
+.vote-sage { color: #60a5fa; }
+.vote-nova { color: #86efac; }
+
+/* Debate transcript */
+.debate-section { margin-bottom: 20px; }
+.debate-title { font-size: 9px; font-weight: 700; letter-spacing: 1.8px; text-transform: uppercase; color: #2e2e2e; margin-bottom: 12px; }
+.debate-bubble { display: flex; gap: 10px; margin-bottom: 10px; align-items: flex-start; }
+.bubble-avatar { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; margin-top: 2px; }
+.bubble-content { flex: 1; }
+.bubble-name { font-size: 10px; font-weight: 700; margin-bottom: 3px; }
+.bubble-name.rex  { color: #f87171; }
+.bubble-name.sage { color: #60a5fa; }
+.bubble-name.nova { color: #86efac; }
+.bubble-text { font-size: 12px; line-height: 1.6; color: #666; background: #0f0f0f; border-radius: 0 8px 8px 8px; padding: 8px 12px; border: 1px solid #1a1a1a; }
+
+/* Consensus */
+.consensus-card { background: #0c0c10; border: 1px solid #1e1e2d; border-radius: 12px; padding: 18px 20px; margin-bottom: 16px; }
+.consensus-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.consensus-icon { font-size: 16px; }
+.consensus-label { font-size: 11px; font-weight: 700; color: #818cf8; letter-spacing: 0.5px; }
+.consensus-verdict { font-size: 12px; color: #555; margin-bottom: 12px; font-style: italic; }
+
+/* Reply area */
+.reply-section { padding: 0 36px 32px; background: #080808; }
+
+/* Streamlit widget overrides */
 div[data-testid="stTextArea"] textarea {
-    background: #0f0f0f !important;
-    border: 1px solid #1e1e1e !important;
-    border-radius: 8px !important;
-    color: #aaa !important;
-    font-size: 13px !important;
-    line-height: 1.7 !important;
+    background: #0d0d0d !important; border: 1px solid #1e1e1e !important;
+    border-radius: 8px !important; color: #999 !important;
+    font-size: 13px !important; line-height: 1.7 !important;
     font-family: 'Inter', sans-serif !important;
 }
 div[data-testid="stTextInput"] input {
-    background: #161616 !important;
-    border: 1px solid #222 !important;
-    color: #ccc !important;
-    font-size: 13px !important;
-    border-radius: 8px !important;
+    background: #111 !important; border: 1px solid #1e1e1e !important;
+    color: #ccc !important; font-size: 13px !important; border-radius: 8px !important;
 }
-div[data-testid="stTextInput"] input::placeholder { color: #444 !important; }
+div[data-testid="stTextInput"] input::placeholder { color: #333 !important; }
 
-/* Buttons */
 div[data-testid="stButton"] > button {
-    background: #6366f1 !important;
-    color: white !important;
-    border: none !important;
-    border-radius: 8px !important;
-    font-size: 13px !important;
-    font-weight: 500 !important;
-    padding: 10px 20px !important;
+    background: #818cf8 !important; color: #fff !important;
+    border: none !important; border-radius: 8px !important;
+    font-size: 13px !important; font-weight: 600 !important;
+    padding: 10px 20px !important; width: 100% !important;
     transition: opacity 0.15s !important;
-    width: 100%;
 }
 div[data-testid="stButton"] > button:hover { opacity: 0.85 !important; }
 
-/* Secondary buttons */
-button[kind="secondary"] {
-    background: #161616 !important;
-    color: #888 !important;
-    border: 1px solid #222 !important;
-}
-
-.stSpinner > div { border-top-color: #6366f1 !important; }
-
 div[data-testid="stExpander"] {
-    background: #0f0f0f !important;
-    border: 1px solid #1a1a1a !important;
-    border-radius: 8px !important;
+    background: #0d0d0d !important; border: 1px solid #1a1a1a !important; border-radius: 8px !important;
 }
 
-/* Memory log */
-.memory-item {
-    padding: 6px 0;
-    border-bottom: 1px solid #141414;
-    font-size: 11px;
-    color: #555;
-    font-family: 'Courier New', monospace;
-}
-.memory-item span { color: #6366f1; }
-
-/* Empty state */
-.empty-state {
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    height: 70vh; color: #333; text-align: center;
-}
-.empty-icon { font-size: 48px; margin-bottom: 16px; }
-.empty-title { font-family: 'DM Serif Display', serif; font-size: 22px; color: #444; margin-bottom: 8px; }
-.empty-sub { font-size: 13px; color: #333; }
-
-/* Warning/info overrides */
-div[data-testid="stAlert"] {
-    background: #0f0f13 !important;
-    border: 1px solid #1e1e2d !important;
-    border-radius: 8px !important;
-    color: #818cf8 !important;
-}
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 75vh; text-align: center; }
+.empty-icon { font-size: 44px; margin-bottom: 14px; }
+.empty-title { font-family: 'DM Serif Display', serif; font-size: 22px; color: #333; margin-bottom: 8px; }
+.empty-sub { font-size: 12px; color: #2a2a2a; max-width: 300px; line-height: 1.6; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -288,89 +189,156 @@ SAMPLE_EMAILS = [
 ]
 
 CATEGORY_CONFIG = {
-    "urgent":          ("🔴", "Urgent",          "badge-urgent",  "urgent"),
-    "action_required": ("🟡", "Action Required", "badge-action",  "high"),
-    "informational":   ("🔵", "Informational",   "badge-info",    "medium"),
-    "low_priority":    ("⚪", "Low Priority",    "badge-low",     "low"),
-    "spam":            ("🗑", "Spam",            "badge-spam",    "low"),
-}
-
-PRIORITY_CLASS = {
-    "1 - critical": "urgent",
-    "2 - high": "high",
-    "3 - medium": "medium",
-    "4 - low": "low",
+    "urgent":          ("🔴", "Urgent",          "badge-urgent"),
+    "action_required": ("🟡", "Action",          "badge-action"),
+    "informational":   ("🔵", "Info",            "badge-info"),
+    "low_priority":    ("⚪", "Low",             "badge-low"),
+    "spam":            ("🗑", "Spam",            "badge-spam"),
 }
 
 GROQ_MODEL = "llama-3.3-70b-versatile"
 
+AGENTS = {
+    "rex":  {"name": "Rex",  "emoji": "🔴", "avatar_cls": "avatar-rex",  "card_cls": "agent-rex",  "name_cls": "rex",  "role": "Aggressive · Direct",     "color": "#f87171"},
+    "sage": {"name": "Sage", "emoji": "🔵", "avatar_cls": "avatar-sage", "card_cls": "agent-sage", "name_cls": "sage", "role": "Diplomatic · Empathetic",  "color": "#60a5fa"},
+    "nova": {"name": "Nova", "emoji": "🟢", "avatar_cls": "avatar-nova", "card_cls": "agent-nova", "name_cls": "nova", "role": "Analytical · Strategic",   "color": "#86efac"},
+}
+
 # ── Session state ─────────────────────────────────────────────────────────────
-for k, v in [("emails", SAMPLE_EMAILS.copy()), ("analyses", {}),
-              ("replies", {}), ("selected_id", None), ("memory", [])]:
+for k, v in [("emails", SAMPLE_EMAILS.copy()), ("debates", {}),
+              ("selected_id", None), ("memory", [])]:
     if k not in st.session_state:
         st.session_state[k] = v
 
-# ── Agent ─────────────────────────────────────────────────────────────────────
-def run_agent(email, api_key):
-    client = Groq(api_key=api_key)
-    system = """You are an intelligent email assistant agent (Perceive → Decide → Act).
-Return ONLY raw valid JSON, no markdown, no explanation:
-{
-  "category": "urgent|action_required|informational|low_priority|spam",
-  "priority": "1 - critical|2 - high|3 - medium|4 - low",
-  "sentiment": "frustrated|positive|neutral|demanding|friendly|professional",
-  "summary": "2-3 sentence summary of the email and what the sender needs.",
-  "action_items": ["action 1", "action 2"],
-  "reply": "Professional draft reply. Concise and warm. Body only, no subject."
-}"""
+# ── Agent core ────────────────────────────────────────────────────────────────
+def call_agent(client, agent_id, email, context=""):
+    personas = {
+        "rex": """You are Agent Rex — aggressive, blunt, results-focused. You believe in direct confrontation and urgent action. You don't sugarcoat anything. Your tone is firm and commanding. You prioritize speed and accountability over feelings.""",
+        "sage": """You are Agent Sage — empathetic, diplomatic, relationship-first. You believe every interaction is a chance to strengthen the relationship. You lead with understanding and de-escalation. Your tone is warm, professional, and measured.""",
+        "nova": """You are Agent Nova — analytical, data-driven, systematic. You break problems into components and evaluate options. You think in terms of tradeoffs, root causes, and structured solutions. Your tone is precise and objective.""",
+    }
+
+    debate_context = f"\n\nOther agents have said:\n{context}" if context else ""
+
+    prompt = f"""Analyze this email and give your response as {agent_id.upper()}.{debate_context}
+
+Email:
+From: {email['from']}
+Subject: {email['subject']}
+Body: {email['body']}
+
+Return ONLY valid JSON:
+{{
+  "stance": "Your 2-3 sentence take on this email and how to handle it, in your personality",
+  "key_argument": "One punchy sentence — your strongest argument for your approach",
+  "vote": "aggressive|diplomatic|analytical",
+  "draft_reply": "Your version of a reply to this email, written in your personality (3-5 sentences)"
+}}"""
+
     resp = client.chat.completions.create(
         model=GROQ_MODEL,
         messages=[
-            {"role": "system", "content": system},
-            {"role": "user", "content": f"From: {email['from']}\nSubject: {email['subject']}\n\n{email['body']}"},
+            {"role": "system", "content": personas[agent_id]},
+            {"role": "user", "content": prompt},
         ],
-        temperature=0.3, max_tokens=1000,
+        temperature=0.7,
+        max_tokens=600,
     )
     raw = resp.choices[0].message.content.strip().replace("```json","").replace("```","").strip()
-    result = json.loads(raw)
+    return json.loads(raw)
+
+
+def call_consensus(client, email, rex_data, sage_data, nova_data):
+    prompt = f"""Three AI agents debated how to reply to this email:
+
+Email: From {email['from']}: {email['subject']}
+Body: {email['body']}
+
+Agent Rex (aggressive) said: {rex_data['stance']}
+Rex's draft: {rex_data['draft_reply']}
+
+Agent Sage (diplomatic) said: {sage_data['stance']}
+Sage's draft: {sage_data['draft_reply']}
+
+Agent Nova (analytical) said: {nova_data['stance']}
+Nova's draft: {nova_data['draft_reply']}
+
+Now synthesize the best elements from all three into one final reply. Take Rex's urgency, Sage's empathy, and Nova's structure. Also classify the email.
+
+Return ONLY valid JSON:
+{{
+  "category": "urgent|action_required|informational|low_priority|spam",
+  "priority": "1 - critical|2 - high|3 - medium|4 - low",
+  "verdict": "One sentence explaining which agent won the debate and why",
+  "consensus_reply": "The final synthesized reply — professional, effective, taking the best of all three agents (4-6 sentences)"
+}}"""
+
+    resp = client.chat.completions.create(
+        model=GROQ_MODEL,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.4,
+        max_tokens=700,
+    )
+    raw = resp.choices[0].message.content.strip().replace("```json","").replace("```","").strip()
+    return json.loads(raw)
+
+
+def run_war_room(email, api_key):
+    client = Groq(api_key=api_key)
+    results = {}
+
+    # Round 1 — each agent states position
+    for agent_id in ["rex", "sage", "nova"]:
+        results[agent_id] = call_agent(client, agent_id, email)
+
+    # Round 2 — agents see each other's stances (one rebuttal each)
+    debate_log = []
+    for agent_id in ["rex", "sage", "nova"]:
+        others = "\n".join([
+            f"Agent {aid.upper()}: {results[aid]['key_argument']}"
+            for aid in ["rex","sage","nova"] if aid != agent_id
+        ])
+        rebuttal = call_agent(client, agent_id, email, context=others)
+        results[f"{agent_id}_rebuttal"] = rebuttal
+        debate_log.append({
+            "agent": agent_id,
+            "text": rebuttal["key_argument"]
+        })
+
+    # Final consensus
+    consensus = call_consensus(client, email, results["rex"], results["sage"], results["nova"])
+    results["consensus"] = consensus
+
+    # Memory
     st.session_state.memory.append({
         "ts": datetime.now().strftime("%H:%M:%S"),
         "subject": email["subject"][:22],
-        "decision": result["category"],
-        "priority": result["priority"],
+        "decision": consensus["category"],
+        "winner": consensus["verdict"][:40],
     })
-    return result
 
-def regenerate_reply(email, api_key):
-    client = Groq(api_key=api_key)
-    resp = client.chat.completions.create(
-        model=GROQ_MODEL,
-        messages=[{"role": "user", "content":
-            f"Write a professional email reply. Return ONLY the body.\n\nFrom: {email['from']}\nSubject: {email['subject']}\n\n{email['body']}"}],
-        temperature=0.6, max_tokens=500,
-    )
-    return resp.choices[0].message.content.strip()
+    return results, debate_log
+
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("""
     <div class="sb-header">
-        <div class="sb-logo">✉ Mail Agent</div>
-        <div class="sb-tagline">Groq · Llama 3.3 · AI-Powered</div>
+        <div class="sb-logo">⚔ War Room</div>
+        <div class="sb-tagline">3 agents · 1 inbox · Groq AI</div>
     </div>
     """, unsafe_allow_html=True)
 
-    # API Key
     st.markdown('<div class="sb-section">', unsafe_allow_html=True)
-    st.markdown('<div class="sb-section-title">API Key</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sb-section-title">Groq API Key</div>', unsafe_allow_html=True)
     api_key = st.text_input("", type="password", placeholder="gsk_...", label_visibility="collapsed")
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # Stats
-    analyses = st.session_state.analyses
-    n_u = sum(1 for a in analyses.values() if a.get("category") == "urgent")
-    n_a = sum(1 for a in analyses.values() if a.get("category") == "action_required")
-    n_i = sum(1 for a in analyses.values() if a.get("category") == "informational")
+    debates = st.session_state.debates
+    n_u = sum(1 for d in debates.values() if d.get("consensus",{}).get("category") == "urgent")
+    n_a = sum(1 for d in debates.values() if d.get("consensus",{}).get("category") == "action_required")
+    n_i = sum(1 for d in debates.values() if d.get("consensus",{}).get("category") == "informational")
+
     st.markdown(f"""
     <div class="sb-section">
         <div class="sb-section-title">Overview</div>
@@ -382,42 +350,40 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
-    # Inbox list
-    st.markdown('<div class="sb-section-title" style="padding: 16px 20px 0;">Inbox</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sb-section-title" style="padding:14px 20px 0;">Inbox</div>', unsafe_allow_html=True)
+
     sorted_emails = sorted(
         st.session_state.emails,
         key=lambda e: {"urgent":0,"action_required":1,"informational":2,"low_priority":3,"spam":4}
-                      .get(analyses.get(e["id"],{}).get("category",""), 5)
+                      .get(debates.get(e["id"],{}).get("consensus",{}).get("category",""), 5)
     )
+
     for em in sorted_emails:
-        an = analyses.get(em["id"])
-        if an:
-            icon, label, badge_cls, _ = CATEGORY_CONFIG.get(an["category"], ("⚪","Low","badge-low","low"))
+        d = debates.get(em["id"])
+        if d:
+            cat = d.get("consensus",{}).get("category","low_priority")
+            icon, label, badge_cls = CATEGORY_CONFIG.get(cat, ("⚪","Low","badge-low"))
             badge = f'<span class="badge {badge_cls}">{icon} {label}</span>'
         else:
             badge = f'<span class="badge badge-new">{"● New" if not em["read"] else "—"}</span>'
 
         is_active = em["id"] == st.session_state.selected_id
-        name_cls = "unread" if not em["read"] else ""
-        subj_cls = "unread" if not em["read"] else ""
-
         st.markdown(f"""
         <div class="email-item {'active' if is_active else ''}">
-            <div class="ei-row1">
-                <span class="ei-name {name_cls}">{em['from_name']}</span>
+            <div class="ei-top">
+                <span class="ei-name {'unread' if not em['read'] else ''}">{em['from_name']}</span>
                 <span class="ei-time">{em['time']}</span>
             </div>
-            <div class="ei-subject {subj_cls}">{em['subject']}</div>
-            <div style="margin-top:5px;">{badge}</div>
+            <div class="ei-subject {'unread' if not em['read'] else ''}">{em['subject']}</div>
+            <div>{badge}</div>
         </div>
         """, unsafe_allow_html=True)
-        if st.button(f"Open", key=f"btn_{em['id']}", use_container_width=True):
+        if st.button("Open", key=f"btn_{em['id']}", use_container_width=True):
             st.session_state.selected_id = em["id"]
             em["read"] = True
             st.rerun()
 
-    # Add email
-    st.markdown('<div style="padding: 12px 20px;">', unsafe_allow_html=True)
+    st.markdown('<div style="padding:12px 20px;">', unsafe_allow_html=True)
     with st.expander("＋ Add email"):
         nf = st.text_input("From", placeholder="sender@example.com", key="nf")
         ns = st.text_input("Subject", key="ns")
@@ -434,131 +400,198 @@ with st.sidebar:
                 st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # Memory
     if st.session_state.memory:
         st.markdown('<div class="sb-section">', unsafe_allow_html=True)
         st.markdown('<div class="sb-section-title">Agent Memory</div>', unsafe_allow_html=True)
-        for m in reversed(st.session_state.memory[-5:]):
-            st.markdown(f'<div class="memory-item"><span>{m["ts"]}</span> {m["subject"]}… → {m["decision"]}</div>', unsafe_allow_html=True)
+        for m in reversed(st.session_state.memory[-4:]):
+            st.markdown(f'<div class="memory-item"><span>{m["ts"]}</span> {m["subject"]}…<br>{m["winner"]}</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-# ── Main panel ────────────────────────────────────────────────────────────────
+
+# ── Main ──────────────────────────────────────────────────────────────────────
 if not st.session_state.selected_id:
     st.markdown("""
     <div class="empty-state">
-        <div class="empty-icon">✉</div>
-        <div class="empty-title">Select an email to begin</div>
-        <div class="empty-sub">The agent will classify, prioritize, and draft a reply for you.</div>
+        <div class="empty-icon">⚔</div>
+        <div class="empty-title">The War Room awaits</div>
+        <div class="empty-sub">Select an email and watch Rex, Sage, and Nova debate the best response in real time.</div>
     </div>
     """, unsafe_allow_html=True)
+
 else:
     email = next((e for e in st.session_state.emails if e["id"] == st.session_state.selected_id), None)
     if email:
-        an = analyses.get(email["id"])
+        debate = debates.get(email["id"])
 
-        # Badge for header
-        if an:
-            icon, label, badge_cls, _ = CATEGORY_CONFIG.get(an["category"], ("⚪","—","badge-low","low"))
-            hdr_badge = f'<span class="badge {badge_cls}" style="font-size:11px;">{icon} {label}</span>'
-        else:
-            hdr_badge = ""
+        # Header
+        badge_html = ""
+        if debate:
+            cat = debate.get("consensus",{}).get("category","low_priority")
+            icon, label, badge_cls = CATEGORY_CONFIG.get(cat, ("⚪","Low","badge-low"))
+            badge_html = f'<span class="badge {badge_cls}" style="font-size:10px;">{icon} {label}</span>'
 
-        # Email header
         st.markdown(f"""
         <div class="email-header">
-            <div class="email-subject-title">{email['subject']}</div>
-            <div class="email-meta-row">
-                <span class="email-from">From: <span>{email['from']}</span></span>
-                <span class="email-from">·</span>
-                <span class="email-from">{email['time']}</span>
-                {hdr_badge}
+            <div class="email-title">{email['subject']}</div>
+            <div class="email-meta">
+                <span>From: <span>{email['from']}</span></span>
+                <span>·</span><span>{email['time']}</span>
+                {badge_html}
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-        # Analyze button row
-        col_space, col_btn = st.columns([3, 1])
+        # Analyze button
+        _, col_btn = st.columns([3, 1])
         with col_btn:
             if not api_key:
-                st.markdown('<div style="padding:8px 40px;"><small style="color:#444;">Enter API key →</small></div>', unsafe_allow_html=True)
+                st.markdown('<p style="color:#333;font-size:12px;padding:8px 0;">Enter API key →</p>', unsafe_allow_html=True)
             else:
-                btn_label = "↺ Re-analyze" if an else "✦ Analyze & Draft Reply"
-                if st.button(btn_label, key="analyze_btn"):
-                    with st.spinner("Agent thinking..."):
+                btn_label = "↺ New Debate" if debate else "⚔ Start War Room"
+                if st.button(btn_label, key="war_btn"):
+                    with st.spinner("Agents assembling..."):
                         try:
-                            result = run_agent(email, api_key)
-                            st.session_state.analyses[email["id"]] = result
-                            st.session_state.replies[email["id"]] = result.get("reply", "")
+                            result, log = run_war_room(email, api_key)
+                            result["debate_log"] = log
+                            st.session_state.debates[email["id"]] = result
+                            if "reply_edit" in st.session_state:
+                                del st.session_state["reply_edit"]
                             st.rerun()
                         except Exception as ex:
                             st.error(f"Error: {ex}")
 
         # Email body
         st.markdown(f"""
-        <div class="email-body-wrap">
-            <div class="section-label">Message</div>
+        <div class="email-body-section">
+            <div class="section-eyebrow">Message</div>
             <div class="email-body-text">{email['body']}</div>
         </div>
         """, unsafe_allow_html=True)
 
-        # Analysis
-        if an:
-            pri = an.get("priority","—")
-            pri_cls = PRIORITY_CLASS.get(pri, "low")
-            cat = an.get("category","—").replace("_"," ").title()
-            sent = an.get("sentiment","—").title()
-
-            st.markdown(f"""
-            <div class="analysis-wrap">
-                <div class="section-label">Agent Analysis</div>
-                <div class="metrics-grid">
-                    <div class="metric-card">
-                        <div class="metric-label">Category</div>
-                        <div class="metric-value {pri_cls}">{cat}</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-label">Priority</div>
-                        <div class="metric-value {pri_cls}">{pri}</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-label">Sentiment</div>
-                        <div class="metric-value">{sent}</div>
-                    </div>
-                </div>
-                <div class="summary-card">
-                    <div class="metric-label" style="margin-bottom:8px;">Summary</div>
-                    <div class="summary-text">{an.get('summary','')}</div>
-                </div>
+        # War room results
+        if debate:
+            st.markdown("""
+            <div class="warroom-section">
+                <div class="warroom-title">⚔ The War Room</div>
+                <div class="warroom-sub">Three agents read the email, stated positions, then debated each other.</div>
             """, unsafe_allow_html=True)
 
-            items = an.get("action_items", [])
-            if items:
-                st.markdown('<div class="metric-label" style="margin-bottom:8px;">Suggested Actions</div>', unsafe_allow_html=True)
-                actions_html = "".join(
-                    f'<div class="action-item"><span class="action-arrow">→</span>{item}</div>'
-                    for item in items
-                )
-                st.markdown(f'<div class="actions-list">{actions_html}</div>', unsafe_allow_html=True)
+            # Agent cards
+            rex  = debate.get("rex", {})
+            sage = debate.get("sage", {})
+            nova = debate.get("nova", {})
+            rex_r  = debate.get("rex_rebuttal", rex)
+            sage_r = debate.get("sage_rebuttal", sage)
+            nova_r = debate.get("nova_rebuttal", nova)
+
+            st.markdown(f"""
+            <div class="agents-grid">
+                <div class="agent-card agent-rex">
+                    <div class="agent-header">
+                        <div class="agent-avatar avatar-rex">🔴</div>
+                        <div>
+                            <div class="agent-name rex">Agent Rex</div>
+                            <div class="agent-role">Aggressive · Direct</div>
+                        </div>
+                    </div>
+                    <div class="agent-stance">{rex.get('stance','...')}</div>
+                    <div class="agent-vote">
+                        <div class="vote-label">Key argument</div>
+                        <div class="vote-text vote-rex">"{rex_r.get('key_argument', rex.get('key_argument',''))}"</div>
+                    </div>
+                </div>
+                <div class="agent-card agent-sage">
+                    <div class="agent-header">
+                        <div class="agent-avatar avatar-sage">🔵</div>
+                        <div>
+                            <div class="agent-name sage">Agent Sage</div>
+                            <div class="agent-role">Diplomatic · Empathetic</div>
+                        </div>
+                    </div>
+                    <div class="agent-stance">{sage.get('stance','...')}</div>
+                    <div class="agent-vote">
+                        <div class="vote-label">Key argument</div>
+                        <div class="vote-text vote-sage">"{sage_r.get('key_argument', sage.get('key_argument',''))}"</div>
+                    </div>
+                </div>
+                <div class="agent-card agent-nova">
+                    <div class="agent-header">
+                        <div class="agent-avatar avatar-nova">🟢</div>
+                        <div>
+                            <div class="agent-name nova">Agent Nova</div>
+                            <div class="agent-role">Analytical · Strategic</div>
+                        </div>
+                    </div>
+                    <div class="agent-stance">{nova.get('stance','...')}</div>
+                    <div class="agent-vote">
+                        <div class="vote-label">Key argument</div>
+                        <div class="vote-text vote-nova">"{nova_r.get('key_argument', nova.get('key_argument',''))}"</div>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # Debate transcript
+            log = debate.get("debate_log", [])
+            if log:
+                bubbles = ""
+                for entry in log:
+                    a = AGENTS[entry["agent"]]
+                    bubbles += f"""
+                    <div class="debate-bubble">
+                        <div class="bubble-avatar {a['avatar_cls']}">{a['emoji']}</div>
+                        <div class="bubble-content">
+                            <div class="bubble-name {a['name_cls']}">Agent {a['name']}</div>
+                            <div class="bubble-text">{entry['text']}</div>
+                        </div>
+                    </div>"""
+                st.markdown(f"""
+                <div class="debate-section">
+                    <div class="debate-title">Rebuttal Round</div>
+                    {bubbles}
+                </div>
+                """, unsafe_allow_html=True)
+
+            # Consensus
+            consensus = debate.get("consensus", {})
+            st.markdown(f"""
+            <div class="consensus-card">
+                <div class="consensus-header">
+                    <span class="consensus-icon">🤝</span>
+                    <span class="consensus-label">Consensus Reached · {consensus.get('priority','—').title()}</span>
+                </div>
+                <div class="consensus-verdict">"{consensus.get('verdict','')}"</div>
+            </div>
+            """, unsafe_allow_html=True)
 
             st.markdown('</div>', unsafe_allow_html=True)
 
-            # Reply draft
-            st.markdown('<div class="reply-wrap">', unsafe_allow_html=True)
-            st.markdown('<div class="section-label">Draft Reply</div>', unsafe_allow_html=True)
-            current = st.session_state.replies.get(email["id"], "")
-            edited = st.text_area("", value=current, height=160,
-                                  key=f"reply_{email['id']}", label_visibility="collapsed")
-            st.session_state.replies[email["id"]] = edited
+            # Final reply
+            st.markdown('<div class="reply-section">', unsafe_allow_html=True)
+            st.markdown('<div class="section-eyebrow" style="margin-bottom:10px;">Consensus Reply</div>', unsafe_allow_html=True)
+
+            default_reply = consensus.get("consensus_reply", "")
+            reply_key = f"reply_{email['id']}"
+            if reply_key not in st.session_state:
+                st.session_state[reply_key] = default_reply
+
+            edited = st.text_area("", value=st.session_state[reply_key],
+                                  height=160, key=f"ta_{email['id']}", label_visibility="collapsed")
+            st.session_state[reply_key] = edited
 
             c1, c2, c3 = st.columns([1, 1, 2])
             with c1:
                 if st.button("📋 Copy", key=f"copy_{email['id']}"):
-                    st.toast("Copied to clipboard!")
+                    st.toast("Copied!")
             with c2:
-                if api_key and st.button("↺ Regenerate", key=f"regen_{email['id']}"):
-                    with st.spinner("Rewriting..."):
+                if api_key and st.button("↺ New Debate", key=f"redebate_{email['id']}"):
+                    with st.spinner("Agents reconvening..."):
                         try:
-                            st.session_state.replies[email["id"]] = regenerate_reply(email, api_key)
+                            result, log = run_war_room(email, api_key)
+                            result["debate_log"] = log
+                            st.session_state.debates[email["id"]] = result
+                            if reply_key in st.session_state:
+                                del st.session_state[reply_key]
                             st.rerun()
                         except Exception as ex:
                             st.error(str(ex))
