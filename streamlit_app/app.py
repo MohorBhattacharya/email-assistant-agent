@@ -131,7 +131,7 @@ div[data-testid="stExpander"] {
 """, unsafe_allow_html=True)
 
 # ── Config ────────────────────────────────────────────────────────────────────
-GROQ_API_KEY = "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"   
+GROQ_API_KEY = "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"
 GROQ_MODEL   = "llama-3.3-70b-versatile"
 
 # ── Data ──────────────────────────────────────────────────────────────────────
@@ -478,14 +478,14 @@ else:
                 bubbles = ""
                 for entry in log:
                     a = AGENTS[entry["agent"]]
-                    bubbles += f"""
-                    <div class="debate-bubble">
-                        <div class="bubble-avatar {a['avatar_cls']}">{a['emoji']}</div>
-                        <div class="bubble-content">
-                            <div class="bubble-name {a['name_cls']}">Agent {a['name']}</div>
-                            <div class="bubble-text">{entry['text']}</div>
-                        </div>
-                    </div>"""
+                    bubbles += (
+                        f'<div class="debate-bubble">'
+                        f'<div class="bubble-avatar {a["avatar_cls"]}">{a["emoji"]}</div>'
+                        f'<div class="bubble-content">'
+                        f'<div class="bubble-name {a["name_cls"]}">Agent {a["name"]}</div>'
+                        f'<div class="bubble-text">{entry["text"]}</div>'
+                        f'</div></div>'
+)
                 st.markdown(f"""
                 <div class="debate-section">
                     <div class="debate-title">Rebuttal Round</div>
