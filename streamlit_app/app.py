@@ -131,7 +131,8 @@ div[data-testid="stExpander"] {
 """, unsafe_allow_html=True)
 
 # ── Config ────────────────────────────────────────────────────────────────────
-GROQ_API_KEY = "gsk_YOUR_KEY_HERE"
+import os
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "gsk_YOUR_KEY_HERE")
 GROQ_MODEL   = "llama-3.3-70b-versatile"
 
 # ── Data ──────────────────────────────────────────────────────────────────────
