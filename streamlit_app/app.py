@@ -131,7 +131,7 @@ div[data-testid="stExpander"] {
 """, unsafe_allow_html=True)
 
 # ── Config ────────────────────────────────────────────────────────────────────
-GROQ_API_KEY = "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"
+GROQ_API_KEY = "gsk_YOUR_KEY_HERE"
 GROQ_MODEL   = "llama-3.3-70b-versatile"
 
 # ── Data ──────────────────────────────────────────────────────────────────────
@@ -248,12 +248,8 @@ Return ONLY valid JSON:
 def run_war_room(email):
     client = Groq(api_key=GROQ_API_KEY)
     results = {}
-
-    # Round 1 — each agent states position
     for agent_id in ["rex", "sage", "nova"]:
         results[agent_id] = call_agent(client, agent_id, email)
-
-    # Round 2 — rebuttals
     debate_log = []
     for agent_id in ["rex", "sage", "nova"]:
         others = "\n".join([
@@ -263,11 +259,8 @@ def run_war_room(email):
         rebuttal = call_agent(client, agent_id, email, context=others)
         results[f"{agent_id}_rebuttal"] = rebuttal
         debate_log.append({"agent": agent_id, "text": rebuttal["key_argument"]})
-
-    # Consensus
     consensus = call_consensus(client, email, results["rex"], results["sage"], results["nova"])
     results["consensus"] = consensus
-
     st.session_state.memory.append({
         "ts":       datetime.now().strftime("%H:%M:%S"),
         "subject":  email["subject"][:22],
@@ -356,7 +349,7 @@ with st.sidebar:
         st.markdown('<div class="sb-section">', unsafe_allow_html=True)
         st.markdown('<div class="sb-section-title">Agent Memory</div>', unsafe_allow_html=True)
         for m in reversed(st.session_state.memory[-4:]):
-            st.markdown(f'<div class="memory-item"><span>{m["ts"]}</span> {m["subject"]}… → {m["decision"]}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="memory-item"><span>{m["ts"]}</span> {m["subject"]}... -> {m["decision"]}</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
 
@@ -375,19 +368,13 @@ else:
     if email:
         debate = debates.get(email["id"])
 
-        badge_html = ""
-        if debate:
-            cat = debate.get("consensus",{}).get("category","low_priority")
-            icon, label, badge_cls = CATEGORY_CONFIG.get(cat, ("⚪","Low","badge-low"))
-            badge_html = f'<span class="badge {badge_cls}" style="font-size:10px;">{icon} {label}</span>'
-
         st.markdown(f"""
         <div class="email-header">
             <div class="email-title">{email['subject']}</div>
             <div class="email-meta">
                 <span>From: <span>{email['from']}</span></span>
-                <span>·</span><span>{email['time']}</span>
-                {badge_html}
+                <span style="color:#333;">·</span>
+                <span>{email['time']}</span>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -416,9 +403,9 @@ else:
         """, unsafe_allow_html=True)
 
         if debate:
-            rex  = debate.get("rex", {})
-            sage = debate.get("sage", {})
-            nova = debate.get("nova", {})
+            rex   = debate.get("rex", {})
+            sage  = debate.get("sage", {})
+            nova  = debate.get("nova", {})
             rex_r  = debate.get("rex_rebuttal", rex)
             sage_r = debate.get("sage_rebuttal", sage)
             nova_r = debate.get("nova_rebuttal", nova)
@@ -485,20 +472,15 @@ else:
                         f'<div class="bubble-name {a["name_cls"]}">Agent {a["name"]}</div>'
                         f'<div class="bubble-text">{entry["text"]}</div>'
                         f'</div></div>'
-)
-                st.markdown(f"""
-                <div class="debate-section">
-                    <div class="debate-title">Rebuttal Round</div>
-                    {bubbles}
-                </div>
-                """, unsafe_allow_html=True)
+                    )
+                st.markdown(f'<div class="debate-section"><div class="debate-title">Rebuttal Round</div>{bubbles}</div>', unsafe_allow_html=True)
 
             consensus = debate.get("consensus", {})
             st.markdown(f"""
                 <div class="consensus-card">
                     <div class="consensus-header">
                         <span class="consensus-icon">🤝</span>
-                        <span class="consensus-label">Consensus Reached · {consensus.get('priority','—').title()}</span>
+                        <span class="consensus-label">Consensus Reached · {consensus.get('priority','').title()}</span>
                     </div>
                     <div class="consensus-verdict">"{consensus.get('verdict','')}"</div>
                 </div>
